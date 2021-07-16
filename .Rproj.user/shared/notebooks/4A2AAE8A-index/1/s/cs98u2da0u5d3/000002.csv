@@ -1,0 +1,4 @@
+"0","# Eliminar vacios y NA"
+"0","orquideas <-"
+"0","  orquideas %>%"
+"0","  filter(!is.na(species) & species != """") "
