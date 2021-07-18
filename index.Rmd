@@ -28,11 +28,6 @@ colores_generos <-"red"
 
 colores_grafico_pastel <- c('rgb(211,94,96)', 'rgb(128,133,133)', 'rgb(144,103,167)', 'rgb(171,104,87)')
 
-colores_alt <- colorNumeric(
-  c("#006400", "#FFFF00", "chocolate1", "#FF0000"), 
-  values(altitud), 
-  na.color = "transparent"
-)
 #--------------------- Íconos ---------------------
 icono_orquideas <-"fab fa-pagelines"
 icono_generos <-"fas fa-seedling"
@@ -85,7 +80,7 @@ orquideas <-
   mutate(eventDate = as.Date(eventDate, "%Y-%m-%d"))
 ```
 
-```{r prueba}
+```{r prueba3}
 # Eliminar vacios y NA
 orquideas <-
   orquideas %>%
@@ -123,6 +118,13 @@ altitud <-
   alt %>%
   crop(cantones) %>%
   mask(cantones)
+
+ # Paleta de colores
+pal <- colorNumeric(
+  c("#006400", "#FFFF00", "chocolate1", "#FF0000"), 
+  values(altitud), 
+  na.color = "transparent"
+)
 
 ```
 
@@ -167,8 +169,9 @@ orquideas_menores <-
 ```
 
 ```{r calculo_orquiedas_restantes}
+
 # Hacer el calculo de la suma de las orquideas restantes  
-cal_orquideas_menores <- apply (orquideas_menores[ , 2], 2, sum)
+cal_orquideas_menores <- apply(orquideas_menores[,2], 2, sum)
 
 ```
 
@@ -186,16 +189,15 @@ sum_orquideas_menores <- data.frame(sum_orquideas_menores, stringsAsFactors = FA
 
 ```{r convertir_numeric}
 # convertit a numerico la columna de n_especies
-sum_orquideas_menores <-
- sum_orquideas_menores %>%
- mutate(n_especies = as.numeric(n_especies))
+#sum_orquideas_menores <-
+ #sum_orquideas_menores %>%
+ #mutate(n_especies = as.numeric(n_especies))
 ```
 
 ```{r unir_dataframe}
 # unir los dos data frame
 orquideas_unidas <- rbind(orquideas_mayores, sum_orquideas_menores)
 ```
-
 
 Registros de presencia
 ======================================================================
@@ -257,6 +259,7 @@ grafico_pastel <-
   plot_ly(
   orquideas_unidas,
   labels = ~ species,
+  values= ~ n_especies,
   type = "pie",
   textposition = "inside",
   textinfo = "label+percent",
