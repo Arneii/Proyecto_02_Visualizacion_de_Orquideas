@@ -3,6 +3,7 @@ title: "Proyecto_02_Visualizacion_de_Orquideas. Sara Alvarado Siles"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
+    source_code: embed
 ---
 
 ```{r carga-paquetes, message=FALSE, warning=FALSE}
@@ -14,10 +15,29 @@ library(leafem)
 library(raster)
 library(plotly)
 library(leaflet)
+library(rmapshaper)
 library(flexdashboard)
 library(leaflet.extras)
 ```
 
+```{r organizacion}
+#-------------------- Colores ---------------------
+colores_orquiedas <- "violet"
+colores_especies <-"blue"
+colores_generos <-"red"
+
+colores_grafico_pastel <- c('rgb(211,94,96)', 'rgb(128,133,133)', 'rgb(144,103,167)', 'rgb(171,104,87)')
+
+colores_alt <- colorNumeric(
+  c("#006400", "#FFFF00", "chocolate1", "#FF0000"), 
+  values(altitud), 
+  na.color = "transparent"
+)
+#--------------------- Íconos ---------------------
+icono_orquideas <-"fab fa-pagelines"
+icono_generos <-"fas fa-seedling"
+icono_especies <-"fas fa-leaf"
+```
 
 ```{r carga_datos, message=FALSE, warning=FALSE}
 # Carga de la capa de orquídeas (familia Orchidaceae)
@@ -72,19 +92,110 @@ orquideas <-
   filter(!is.na(species) & species != "") 
 ```
 
-```{r prueba2, message=FALSE, warning=FALSE}
+```{r grupo_especies, message=FALSE, warning=FALSE}
+#crear grupo de especies 
 orquideas_especies <- 
   orquideas %>% 
   group_by(species) %>% 
   summarize(n_especies = n())
 ```
 
-```{r prueba3, message=FALSE, warning=FALSE}
+```{r grupo_generos, message=FALSE, warning=FALSE}
+# crear grupo de generos 
 orquideas_generos <- 
   orquideas %>% 
   group_by(genus) %>% 
   summarize(n_generos = n())
 ```
+
+```{r capa_alt}
+# Obtención de la capa de altitud
+alt <- getData(
+  "worldclim",
+  var = "alt",
+  res = .5,
+  lon = -84,
+  lat = 10
+)
+
+# Capa de altitud recortada para los límites exactos de Costa Rica
+altitud <-
+  alt %>%
+  crop(cantones) %>%
+  mask(cantones)
+
+```
+
+
+```{r orquideas_mayores}
+# crear un data frame sobre las orquideas con mayores registros 
+orquideas_mayores <-
+  orquideas_especies %>%
+  st_drop_geometry() %>%
+  filter(
+    species == "Epidendrum radicans" |
+      species == "Epidendrum exasperatum" |
+      species == "Elleanthus tonduzii" |
+      species == "Elleanthus hymenophorus" |
+      species == "Pleurothallis ruscifolia" |
+      species == "Maxillaria dendrobioides" |
+      species == "Elleanthus glaucophyllus" |
+      species == "Habenaria monorrhiza" |
+      species == "Epidendrum anoglossum" |
+      species == "Epidendrum centropetalum"
+  )%>%
+  arrange(desc(n_especies))
+
+```
+
+```{r orquiedas_menores}
+# crear un data frame sobre las orquideas con menos registros
+orquideas_menores <-
+  orquideas_especies %>%
+  st_drop_geometry() %>%
+  filter(species != "Epidendrum radicans") %>%
+  filter(species != "Epidendrum exasperatum") %>% 
+  filter(species != "Elleanthus tonduzii") %>%
+  filter(species != "Elleanthus hymenophorus") %>%
+  filter(species != "Pleurothallis ruscifolia") %>%
+  filter(species != "Maxillaria dendrobioides") %>%
+  filter(species != "Elleanthus glaucophyllus") %>%
+  filter(species != "Habenaria monorrhiza") %>%
+  filter(species != "Epidendrum anoglossum") %>%
+  filter(species != "Epidendrum centropetalum") %>%
+  arrange(desc(n_especies))
+```
+
+```{r calculo_orquiedas_restantes}
+# Hacer el calculo de la suma de las orquideas restantes  
+cal_orquideas_menores <- apply (orquideas_menores[ , 2], 2, sum)
+
+```
+
+```{r nueva_dataframe}
+# Definir una variable vacía
+sum_orquideas_menores <- NULL
+
+# Crear las columnas
+sum_orquideas_menores$species <- "Otras"
+sum_orquideas_menores$n_especies <- 19313
+
+# Convertirloa a data.frame
+sum_orquideas_menores <- data.frame(sum_orquideas_menores, stringsAsFactors = FALSE)
+```
+
+```{r convertir_numeric}
+# convertit a numerico la columna de n_especies
+sum_orquideas_menores <-
+ sum_orquideas_menores %>%
+ mutate(n_especies = as.numeric(n_especies))
+```
+
+```{r unir_dataframe}
+# unir los dos data frame
+orquideas_unidas <- rbind(orquideas_mayores, sum_orquideas_menores)
+```
+
 
 Registros de presencia
 ======================================================================
@@ -93,33 +204,33 @@ Row {data-height=200}
 -----------------------------------------------------------------------
 
 ### Cantidad total de registros de presencia {.value-box}
-```{r}
+```{r valueBox_orquideas}
 valueBox(value = nrow(orquideas),
          caption = "Cantidad total de registros de presencia",
-         icon = "fas fa-feather=alt",
-         color = "blue")
+         icon = icono_orquideas,
+         color = colores_orquiedas)
 ```
 
 ### Cantidad total de géneros {.value-box}
-```{r}
+```{r valueBox_generos}
 valueBox(value = nrow(orquideas_generos),
          caption = "Cantidad total de géneros",
-         icon = "fas fa-feather=alt",
-         color = "blue")
+         icon = icono_generos,
+         color = colores_generos)
 ```
 
 ### Cantidad total de especies {.value-box}
-```{r}
+```{r valueBox_especies}
 valueBox(value = nrow(orquideas_especies),
          caption = "Cantidad total de especies",
-         icon = "fas fa-feather=alt",
-         color = "blue")
+         icon = icono_especies,
+         color = colores_especies)
 ```
 
 Row {data-height=800}
 -----------------------------------------------------------------------
 
-### Chart A
+### Tabla de registros de presencia 
 
 ```{r tabla_registros, message=FALSE, warning=FALSE}
 # Tabla de registros de presencia
@@ -138,11 +249,36 @@ orquideas %>%
   )
 ```
 
-### Chart B
+### Gráfico pastel
 
-```{r}
-
+```{r grafico_pastel, message=FALSE, warning=FALSE}
+#grafico pastel 
+grafico_pastel <- 
+  plot_ly(
+  orquideas_unidas,
+  labels = ~ species,
+  type = "pie",
+  textposition = "inside",
+  textinfo = "label+percent",
+  insidetextorientation = "auto",
+  insidetextfont = list(color = "#FFFFFF"),
+  marker = list(colors = colors),
+  showlegend = FALSE
+) %>%
+  layout(
+    title = "Cantidad de registros para cada especie de orquidea",
+    xaxis = list(
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showticklabels = FALSE
+    ),
+    yaxis = list(
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showticklabels = FALSE
+    ) 
+  )
+  
+config (grafico_pastel, locale = "es")
 ```
-
-
 

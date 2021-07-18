@@ -6,5 +6,6 @@
 "0","library(raster)"
 "0","library(plotly)"
 "0","library(leaflet)"
+"0","library(rmapshaper)"
 "0","library(flexdashboard)"
 "0","library(leaflet.extras)"
