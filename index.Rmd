@@ -11,7 +11,7 @@ output:
 library(sf)
 library(DT)
 library(dplyr)
-library(leafem) 
+library(leafem)
 library(raster)
 library(plotly)
 library(leaflet)
@@ -67,20 +67,20 @@ provincias <-
 
 ```{r limpieza, message=FALSE, warning=FALSE}
 # Cruce espacial con la tabla de provincias y cantones
-orquideas <- 
+orquideas <-
   orquideas %>%
   st_join(cantones["provincia"]) %>%
   st_join(cantones["canton"])
 
 
 # Descartar registros con alta incertidumbre 
-orquideas <- 
+orquideas <-
   orquideas %>%
   filter(coordinateUncertaintyInMeters <= 1000) %>%
   mutate(eventDate = as.Date(eventDate, "%Y-%m-%d"))
 ```
 
-```{r prueba3}
+```{r eliminar_NA}
 # Eliminar vacios y NA
 orquideas <-
   orquideas %>%
@@ -103,32 +103,6 @@ orquideas_generos <-
   summarize(n_generos = n())
 ```
 
-```{r capa_alt}
-# Obtención de la capa de altitud
-alt <- getData(
-  "worldclim",
-  var = "alt",
-  res = .5,
-  lon = -84,
-  lat = 10
-)
-
-# Capa de altitud recortada para los límites exactos de Costa Rica
-altitud <-
-  alt %>%
-  crop(cantones) %>%
-  mask(cantones)
-
- # Paleta de colores
-pal <- colorNumeric(
-  c("#006400", "#FFFF00", "chocolate1", "#FF0000"), 
-  values(altitud), 
-  na.color = "transparent"
-)
-
-```
-
-
 ```{r orquideas_mayores}
 # crear un data frame sobre las orquideas con mayores registros 
 orquideas_mayores <-
@@ -145,7 +119,7 @@ orquideas_mayores <-
       species == "Habenaria monorrhiza" |
       species == "Epidendrum anoglossum" |
       species == "Epidendrum centropetalum"
-  )%>%
+  ) %>%
   arrange(desc(n_especies))
 
 ```
@@ -156,7 +130,7 @@ orquideas_menores <-
   orquideas_especies %>%
   st_drop_geometry() %>%
   filter(species != "Epidendrum radicans") %>%
-  filter(species != "Epidendrum exasperatum") %>% 
+  filter(species != "Epidendrum exasperatum") %>%
   filter(species != "Elleanthus tonduzii") %>%
   filter(species != "Elleanthus hymenophorus") %>%
   filter(species != "Pleurothallis ruscifolia") %>%
@@ -169,10 +143,8 @@ orquideas_menores <-
 ```
 
 ```{r calculo_orquiedas_restantes}
-
 # Hacer el calculo de la suma de las orquideas restantes  
 cal_orquideas_menores <- apply(orquideas_menores[,2], 2, sum)
-
 ```
 
 ```{r nueva_dataframe}
@@ -187,17 +159,31 @@ sum_orquideas_menores$n_especies <- 19313
 sum_orquideas_menores <- data.frame(sum_orquideas_menores, stringsAsFactors = FALSE)
 ```
 
-```{r convertir_numeric}
-# convertit a numerico la columna de n_especies
-#sum_orquideas_menores <-
- #sum_orquideas_menores %>%
- #mutate(n_especies = as.numeric(n_especies))
-```
-
 ```{r unir_dataframe}
 # unir los dos data frame
 orquideas_unidas <- rbind(orquideas_mayores, sum_orquideas_menores)
 ```
+
+
+```{r capa_alt_prueba}
+# Obtención de la capa de altitud
+alt <- getData(
+  "worldclim",
+  var = "alt",
+  res = .5,
+  lon = -84,
+  lat = 10
+)
+
+
+# Capa de altitud recortada para los límites exactos de Costa Rica
+altitud <-
+  alt %>%
+  crop(cantones) %>%
+  mask(cantones)
+
+```
+
 
 Registros de presencia
 ======================================================================
@@ -240,13 +226,13 @@ orquideas %>%
   st_drop_geometry() %>%
   dplyr::select(species, stateProvince, canton, eventDate) %>%
   datatable(
-    colnames = c(
-      "Especie",
-      "Provincia",
-      "Canton",
-      "Fecha"
-    ),
-    options = list(searchHighlight = TRUE, language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')
+    colnames = c("Especie",
+                 "Provincia",
+                 "Canton",
+                 "Fecha"),
+    options = list(
+      searchHighlight = TRUE,
+      language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')
     )
   )
 ```
@@ -255,19 +241,19 @@ orquideas %>%
 
 ```{r grafico_pastel, message=FALSE, warning=FALSE}
 #grafico pastel 
-grafico_pastel <- 
+grafico_pastel <-
   plot_ly(
-  orquideas_unidas,
-  labels = ~ species,
-  values= ~ n_especies,
-  type = "pie",
-  textposition = "inside",
-  textinfo = "label+percent",
-  insidetextorientation = "auto",
-  insidetextfont = list(color = "#FFFFFF"),
-  marker = list(colors = colors),
-  showlegend = FALSE
-) %>%
+    orquideas_unidas,
+    labels = ~ species,
+    values = ~ n_especies,
+    type = "pie",
+    textposition = "inside",
+    textinfo = "label+percent",
+    insidetextorientation = "auto",
+    insidetextfont = list(color = "#FFFFFF"),
+    marker = list(colors = colors),
+    showlegend = FALSE
+  ) %>%
   layout(
     title = "Cantidad de registros para cada especie de orquidea",
     xaxis = list(
@@ -279,9 +265,131 @@ grafico_pastel <-
       showgrid = FALSE,
       zeroline = FALSE,
       showticklabels = FALSE
-    ) 
+    )
   )
-  
+
 config (grafico_pastel, locale = "es")
 ```
 
+Mapa Leaflet
+=======================================================================
+
+
+-----------------------------------------------------------------------
+
+### Mapa de distribucion
+
+```{r}
+# Generación de un raster con celda = cantidad de especies
+
+# Plantilla de raster
+raster_plantilla <-
+  altitud %>%
+  aggregate(fact = 16)
+
+# Rasterización
+orquideas_raster_especies <-
+  rasterize(filter(orquideas),
+            raster_plantilla,
+            field = "species",
+            fun = function(x, ...) {length(unique(na.omit(x)))})
+
+# Paleta de colores
+pal <- colorNumeric(
+  c("#f7f7f7","#2171b5", "#fec44f", "#e41a1c"), 
+  values(orquideas_raster_especies), 
+  na.color = "transparent"
+)
+
+# Mapa de registros de presencia
+orquideas %>%
+  select(stateProvince,
+         canton,
+         species,
+         eventDate,
+         decimalLongitude,
+         decimalLatitude) %>%
+  leaflet() %>%
+  setView(lng = -84.0,
+          lat = 10.0,
+          zoom = 8) %>%
+  addProviderTiles(providers$OpenStreetMap.Mapnik, group = "OpenStreetMap") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Imágenes de ESRI") %>%
+  addRasterImage(
+    orquideas_raster_especies,
+    colors = pal,
+    opacity = 0.9,
+    group = "Capa raster"
+  ) %>%
+  addLegend(
+    pal = pal,
+    values = values(orquideas_raster_especies),
+    position = "bottomleft",
+    title = "Especies por cada celda",
+    group = "Capa raster"
+  ) %>%
+  addCircleMarkers(
+    stroke = F,
+    radius = 4,
+    fillColor = 'red',
+    fillOpacity = 0.8,
+    popup = paste(
+      orquideas$stateProvince,
+      orquideas$canton,
+      orquideas$species,
+      orquideas$eventDate,
+      orquideas$decimalLongitude,
+      orquideas$decimalLatitude,
+      sep = '<br/>'
+    ),
+    clusterOptions = markerClusterOptions(),
+    group = "orquideas"
+  ) %>%
+  addLayersControl(
+    baseGroups = c("OpenStreetMap", "Imágenes de ESRI"),
+    overlayGroups = c("orquideas", "Capa raster")
+  ) %>%
+  addResetMapButton() %>%
+  addMouseCoordinates()
+
+```
+Extras
+=======================================================================
+
+
+-----------------------------------------------------------------------
+### Gráfico pastel extra
+
+Profe, como en el grafico pastel el campo de "Otras" tiene muchos registros y caso no deja ver a los demas datos, aqui hay un grafico solo con las 10 especies mas representativas de Costa Rica.
+Muchas gracias
+
+```{r grafico_pastel_extra, message=FALSE, warning=FALSE}
+#grafico pastel 
+grafico_pastel <-
+  plot_ly(
+    orquideas_mayores,
+    labels = ~ species,
+    values = ~ n_especies,
+    type = "pie",
+    textposition = "inside",
+    textinfo = "label+percent",
+    insidetextorientation = "auto",
+    insidetextfont = list(color = "#FFFFFF"),
+    marker = list(colors = colors),
+    showlegend = FALSE
+  ) %>%
+  layout(
+    title = "Cantidad de registros para cada especie de orquidea",
+    xaxis = list(
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showticklabels = FALSE
+    ),
+    yaxis = list(
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showticklabels = FALSE
+    )
+  )
+
+config (grafico_pastel, locale = "es")
