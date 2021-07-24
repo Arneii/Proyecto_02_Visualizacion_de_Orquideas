@@ -285,7 +285,7 @@ Mapa Leaflet
 # Plantilla de raster
 raster_plantilla <-
   altitud %>%
-  aggregate(fact = 16)
+  aggregate(fact = 15)
 
 # Rasterización
 orquideas_raster_especies <-
@@ -353,14 +353,14 @@ orquideas %>%
   addMouseCoordinates()
 
 ```
-Extras
+Extra
 =======================================================================
 
 
 -----------------------------------------------------------------------
 ### Gráfico pastel extra
 
-Profe, como en el grafico pastel el campo de "Otras" tiene muchos registros y caso no deja ver a los demas datos, aqui hay un grafico solo con las 10 especies mas representativas de Costa Rica.
+Profe, como en el gráfico pastel en el campo de "Otras" tiene muchos registros y no deja ver los demás datos bien, aquí hay un gráfico solo con las 10 especies más representativas de Costa Rica.  
 Muchas gracias
 
 ```{r grafico_pastel_extra, message=FALSE, warning=FALSE}
@@ -379,7 +379,7 @@ grafico_pastel <-
     showlegend = FALSE
   ) %>%
   layout(
-    title = "Cantidad de registros para cada especie de orquidea",
+    title = "Cantidad de registros para las 10 especies de orquideas mas representativas de Costa Rica",
     xaxis = list(
       showgrid = FALSE,
       zeroline = FALSE,
