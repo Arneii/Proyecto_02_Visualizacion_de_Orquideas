@@ -252,7 +252,7 @@ grafico_pastel <-
     insidetextorientation = "auto",
     insidetextfont = list(color = "#FFFFFF"),
     marker = list(colors = colors),
-    showlegend = FALSE
+    showlegend = TRUE
   ) %>%
   layout(
     title = "Cantidad de registros para cada especie de orquidea",
@@ -376,7 +376,7 @@ grafico_pastel <-
     insidetextorientation = "auto",
     insidetextfont = list(color = "#FFFFFF"),
     marker = list(colors = colors),
-    showlegend = FALSE
+    showlegend = TRUE
   ) %>%
   layout(
     title = "Cantidad de registros para las 10 especies de orquideas mas representativas de Costa Rica",
